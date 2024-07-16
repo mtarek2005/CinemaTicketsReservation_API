@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from django.http.response import JsonResponse
-from .models import Guest, Movie, Reservation, Post
+from .models import Guest, Movie, Reservation, Post, Rating
 from rest_framework.decorators import api_view
-from .serializers import GuestSerializer, MovieSerializer, ReservationSerializer, PostSerializer
+from .serializers import GuestSerializer, MovieSerializer, ReservationSerializer, PostSerializer, RatingSerializer
 from rest_framework import status, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -54,7 +54,13 @@ def FBV_List(request):
             serializer.save()
             return Response(serializer.data, status= status.HTTP_201_CREATED)
         return Response(serializer.data, status= status.HTTP_400_BAD_REQUEST)
-
+@api_view(['GET'])
+def FBV_List2(request):
+    # GET
+    if request.method == 'GET':
+        movies = Movie.objects.all()
+        serializer = MovieSerializer(movies, many=True)
+        return Response(serializer.data)
 
 @api_view(['GET','PUT','DELETE'])
 def FBV_pk(request, pk):
@@ -186,3 +192,49 @@ class Post_pk(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthorOrReadOnly]
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+
+@api_view(['GET','POST','DELETE'])
+def ratings(request, pk):
+    try:
+        movie = Movie.objects.get(pk=pk)
+    except Movie.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    # GET
+    if request.method == 'GET':
+        serializer = RatingSerializer(movie.ratings.all(), many = True)
+        return Response(serializer.data)
+        
+    elif request.method == 'POST':
+        user = request.user
+        rating_num = request.data['rating']
+        if rating_num>10 or rating_num<0:
+            return Response(status= status.HTTP_400_BAD_REQUEST)
+        try:
+            rating = Rating.objects.get(author = user, movie = movie)
+            rating.rating = rating_num
+            rating.save()
+            serializer = RatingSerializer(rating)
+            return Response(serializer.data, status= status.HTTP_202_ACCEPTED)
+        except Rating.DoesNotExist:
+            rating = Rating()
+            rating.rating=rating_num
+            rating.author=user
+            rating.movie=movie
+            rating.save()
+            serializer = RatingSerializer(rating)
+            return Response(serializer.data, status= status.HTTP_201_CREATED)
+    # DELETE
+    if request.method == 'DELETE':
+        rating = Rating.objects.get(author = user, movie = movie)
+        rating.delete()
+        return Response(status= status.HTTP_202_ACCEPTED)
+    
+@api_view(['GET','POST','DELETE'])
+def avg_rating(request, pk):
+    try:
+        movie = Movie.objects.get(pk=pk)
+    except Movie.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    # GET
+    if request.method == 'GET':
+        return JsonResponse({"avg_rating":movie.average_rating})

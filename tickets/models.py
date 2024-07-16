@@ -14,6 +14,9 @@ class Movie(models.Model):
     hall = models.CharField(max_length=10)
     movie = models.CharField(max_length=10)
     #date = models.DateField()
+    @property
+    def average_rating(self):
+        return Rating.objects.filter(movie=self).all().aggregate(models.Avg("rating",default=0)).get('rating__avg')
 
 
 class Guest(models.Model):
@@ -31,7 +34,10 @@ class Post(models.Model):
     title = models.CharField(max_length=50)
     body = models.TextField()
 
-
+class Rating(models.Model):
+    author = models.ForeignKey(User, related_name='ratings', on_delete=models.CASCADE )
+    movie = models.ForeignKey(Movie, related_name='ratings', on_delete=models.CASCADE )
+    rating = models.FloatField()
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def TokenCreate(sender, instance, created, **kwargs):

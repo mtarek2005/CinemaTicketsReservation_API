@@ -3,3 +3,7 @@ Django==3.1.7
 djangorestframework==3.12.2
 pytz==2021.1
 sqlparse==0.4.1
+django-crispy-forms==2.2
+crispy-bootstrap3==2024.1
+crispy-bootstrap4==2024.1
+psycopg2==2.9.9
